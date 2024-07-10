@@ -117,7 +117,7 @@ class _DashboardState extends TbContextState<Dashboard> {
     ),
     ios: IOSInAppWebViewOptions(
       allowsInlineMediaPlayback: true,
-      allowsBackForwardNavigationGestures: false,
+      allowsBackForwardNavigationGestures: true,
     ),
   );
 
@@ -337,6 +337,49 @@ class _DashboardState extends TbContextState<Dashboard> {
                               if (args.isNotEmpty && args[0] is String) {
                                 if (widget._titleCallback != null) {
                                   widget._titleCallback!(args[0]);
+                                }
+                                if (UniversalPlatform.isIOS) {
+                                  await webViewController.evaluateJavascript(source: '''
+                                    (function() {
+                                      function applyStyles() {
+                                        const overlayBox = document.querySelector('.cdk-overlay-connected-position-bounding-box');
+                                        const overlayPane = document.querySelector('.cdk-overlay-pane.tb-timewindow-panel');
+
+                                        if (overlayBox && overlayPane) {
+                                          overlayBox.style.width = '90%';
+                                          overlayBox.style.height = '80%';
+                                          overlayBox.style.left = '5%';
+                                          overlayBox.style.top = '5%';
+                                          overlayBox.style.maxHeight = '80vh';
+                                          overlayBox.style.maxWidth = '100vw';
+
+                                          overlayPane.style.height = '100%';
+                                          overlayPane.style.width = '100%';
+                                          overlayPane.style.maxHeight = '100%';
+                                          overlayPane.style.maxWidth = '100%';
+                                          overlayPane.style.overflow = 'auto';
+                                        }
+                                      }
+
+                                      // Apply styles immediately if elements are already in the DOM
+                                      applyStyles();
+
+                                      // Set up a MutationObserver to apply styles when elements are added to the DOM
+                                      const observer = new MutationObserver(function(mutations) {
+                                        mutations.forEach(function(mutation) {
+                                          if (mutation.addedNodes.length) {
+                                            applyStyles();
+                                          }
+                                        });
+                                      });
+
+                                      observer.observe(document.body, {
+                                        childList: true,
+                                        subtree: true
+                                      });
+
+                                    })();
+                                  ''');
                                 }
                               }
                             },
